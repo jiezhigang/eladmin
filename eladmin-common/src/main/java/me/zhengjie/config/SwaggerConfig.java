@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2019-2020 Zheng Jie
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package me.zhengjie.config;
 
 import com.fasterxml.classmate.TypeResolver;
@@ -11,14 +26,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.data.domain.Pageable;
 import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.ParameterBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.schema.AlternateTypeRule;
 import springfox.documentation.schema.AlternateTypeRuleConvention;
-import springfox.documentation.schema.ModelRef;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.service.Parameter;
+import springfox.documentation.service.*;
 import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spi.service.contexts.SecurityContext;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import java.util.ArrayList;
@@ -27,11 +40,10 @@ import static com.google.common.collect.Lists.newArrayList;
 import static springfox.documentation.schema.AlternateTypeRules.newRule;
 
 /**
- * api页面 /swagger-ui.html
+ * api页面 /doc.html
  * @author Zheng Jie
  * @date 2018-11-23
  */
-
 @Configuration
 @EnableSwagger2
 public class SwaggerConfig {
@@ -45,31 +57,59 @@ public class SwaggerConfig {
     @Bean
     @SuppressWarnings("all")
     public Docket createRestApi() {
-        ParameterBuilder ticketPar = new ParameterBuilder();
-        List<Parameter> pars = new ArrayList<>();
-        ticketPar.name(tokenHeader).description("token")
-                .modelRef(new ModelRef("string"))
-                .parameterType("header")
-                .defaultValue("Bearer ")
-                .required(true)
-                .build();
-        pars.add(ticketPar.build());
         return new Docket(DocumentationType.SWAGGER_2)
                 .enable(enabled)
+                .pathMapping("/")
                 .apiInfo(apiInfo())
                 .select()
                 .paths(Predicates.not(PathSelectors.regex("/error.*")))
+                .paths(PathSelectors.any())
                 .build()
-                .globalOperationParameters(pars);
+                //添加登陆认证
+                .securitySchemes(securitySchemes())
+                .securityContexts(securityContexts());
     }
 
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder()
-                .title("eladmin 接口文档")
-                .version("2.3")
+                .description("一个简单且易上手的 Spring boot 后台管理框架")
+                .title("EL-ADMIN 接口文档")
+                .version("2.6")
                 .build();
     }
 
+    private List<SecurityScheme> securitySchemes() {
+        //设置请求头信息
+        List<SecurityScheme> securitySchemes = new ArrayList<>();
+        ApiKey apiKey = new ApiKey(tokenHeader, tokenHeader, "header");
+        securitySchemes.add(apiKey);
+        return securitySchemes;
+    }
+
+    private List<SecurityContext> securityContexts() {
+        //设置需要登录认证的路径
+        List<SecurityContext> securityContexts = new ArrayList<>();
+        // ^(?!auth).*$ 表示所有包含auth的接口不需要使用securitySchemes即不需要带token
+        // ^标识开始  ()里是一子表达式  ?!/auth表示匹配不是/auth的位置，匹配上则添加请求头，注意路径已/开头  .表示任意字符  *表示前面的字符匹配多次 $标识结束
+        securityContexts.add(getContextByPath());
+        return securityContexts;
+    }
+
+    private SecurityContext getContextByPath() {
+        return SecurityContext.builder()
+                .securityReferences(defaultAuth())
+                .forPaths(PathSelectors.regex("^(?!/auth).*$"))
+                .build();
+    }
+
+    private List<SecurityReference> defaultAuth() {
+        List<SecurityReference> securityReferences = new ArrayList<>();
+        AuthorizationScope authorizationScope = new AuthorizationScope("global", "accessEverything");
+        AuthorizationScope[] authorizationScopes = new AuthorizationScope[1];
+        authorizationScopes[0] = authorizationScope;
+        securityReferences.add(new SecurityReference(tokenHeader, authorizationScopes));
+        return securityReferences;
+    }
 }
 
 /**
