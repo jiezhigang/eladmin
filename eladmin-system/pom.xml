@@ -19,6 +19,33 @@
     </properties>
 
     <dependencies>
+
+        <!-- 惊天一城模块 -->
+        <dependency>
+            <groupId>me.zhengjie</groupId>
+            <artifactId>eladmin-test</artifactId>
+            <version>2.6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>me.zhengjie</groupId>
+                    <artifactId>eladmin-common</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- 惊天一城模块 -->
+        <dependency>
+            <groupId>me.zhengjie</groupId>
+            <artifactId>eladmin-jtyc</artifactId>
+            <version>2.6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>me.zhengjie</groupId>
+                    <artifactId>eladmin-tools</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <!-- 代码生成模块 -->
         <dependency>
             <groupId>me.zhengjie</groupId>
